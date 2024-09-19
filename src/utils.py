@@ -3,11 +3,7 @@
 import hashlib
 import numpy as np
 
-def shake128(data, output_length):
-    """Genera un valor hash de longitud output_length bytes utilizando SHAKE128."""
-    shake = hashlib.shake_128()
-    shake.update(data)
-    return shake.digest(output_length)
+from constants import SECURITY_LEVEL
 
 def extract_Pk1(Q1, k, v):
     """Extrae la submatriz Pk1 de Q1 (términos cuadráticos en variables de vinagre)."""
@@ -36,3 +32,30 @@ def flatten_upper_triangular(matrix):
         for j in range(i, matrix.shape[1]):
             flattened.append(matrix[i, j])
     return np.array(flattened)
+
+def select_shake_function(security_level):
+    """Selecciona la función SHAKE adecuada según el nivel de seguridad."""
+    if security_level == 1:
+        return hashlib.shake_128
+    elif security_level in [3,5]:
+        return hashlib.shake_256
+    else:
+        raise ValueError("Nivel de seguridad no soportado")
+
+
+def sign_message(private_key, message):
+    """Genera una firma digital para un mensaje usando la clave privada."""
+    shake_function = select_shake_function(SECURITY_LEVEL)
+    message_hash = shake_function(message.encode()).digest(32)
+    signature = shake_function(private_key + message_hash).digest(32)
+    
+    return signature
+
+def verify_signature(public_key, message, signature):
+    """Verifica una firma digital usando la clave pública."""
+    public_seed, Q2 = public_key
+    shake_function = select_shake_function(SECURITY_LEVEL)
+    message_hash = shake_function(message.encode()).digest(32)
+    expected_signature = shake_function(public_seed + message_hash).digest(32)
+    
+    return expected_signature == signature

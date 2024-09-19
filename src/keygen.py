@@ -1,9 +1,10 @@
 # keygen.py
+from hashlib import shake_128, shake_256
 import os
 import numpy as np
 import sys
-from utils import shake128, extract_Pk1, extract_Pk2, flatten_upper_triangular
-from constants import r, m, v, n, SEED_SIZE
+from utils import extract_Pk1, extract_Pk2, flatten_upper_triangular,select_shake_function, sign_message, verify_signature
+from constants import r, m, v, n, SEED_SIZE, SECURITY_LEVEL
 
 def generate_private_seed():
     """Genera una semilla privada segura de SEED_SIZE bytes."""
@@ -34,30 +35,20 @@ def compute_Pk3(Pk1, Pk2, T):
 
 def keygen():
     """Genera un par de claves (pública y privada) según el esquema LUOV."""
-    # 1. Generar la semilla privada
+    shake_function = select_shake_function(SECURITY_LEVEL)
+    
     private_seed = generate_private_seed()
-
-    # 2. Usar SHAKE128 para generar la semilla pública y la matriz T
-    public_seed = shake128(private_seed, SEED_SIZE)
+    public_seed = shake_function(private_seed).digest(SEED_SIZE)
     
-    # Generar la matriz T (v x m) con valores aleatorios
-    T = np.random.randint(0, 2, (v, m))  # Matriz binaria
-
-    # 3. Generar las matrices C, L y Q1 usando la semilla pública
-    C = np.random.randint(0, 2, m)        # Parte constante
-    L = np.random.randint(0, 2, (m, n))   # Parte lineal
-    Q1 = np.random.randint(0, 2, (m, (v * (v + 1)) // 2 + v * m))  # Parte cuadrática inicial
+    T = np.random.randint(0, 2, (v, m))
+    C = np.random.randint(0, 2, m)
+    L = np.random.randint(0, 2, (m, n))
+    Q1 = np.random.randint(0, 2, (m, (v * (v + 1)) // 2 + v * m))
     
-    # 4. Generar la matriz cuadrática Q2 a partir de T y Q1
     Q2 = find_Q2(Q1, T)
-
-    # Clave pública incluye la semilla pública y la matriz Q2
     public_key = (public_seed, Q2)
-
-    # La clave privada es simplemente la semilla privada
     private_key = private_seed
 
-    # Verificar el tamaño de la clave pública
     public_key_size = sys.getsizeof(public_seed) + sys.getsizeof(Q2)
     public_key_size_kb = public_key_size / 1024
 
@@ -65,6 +56,11 @@ def keygen():
 
 if __name__ == "__main__":
     public_key, private_key, public_key_size_kb = keygen()
-    print("Clave pública:", public_key)
-    print("Clave privada:", private_key)
     print(f"Tamaño de la clave pública: {public_key_size_kb:.2f} KB")
+    
+    message = "This is a test message."
+    signature = sign_message(private_key, message)
+    print("Signature:", signature)
+    
+    is_valid = verify_signature(public_key, message, signature)
+    print("Signature valid:", is_valid)
