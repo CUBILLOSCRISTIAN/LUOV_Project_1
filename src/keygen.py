@@ -16,7 +16,7 @@ def find_Q2(Q1, T):
     Q2 = np.zeros((m, (m * (m + 1)) // 2), dtype=int)
     
     for k in range(m):
-        Pk1 = extract_Pk1(Q1, k, v)
+        Pk1 = extract_Pk1(Q1, k, v, m)
         Pk2 = extract_Pk2(Q1, k, v, m)
         Pk3 = compute_Pk3(Pk1, Pk2, T)
         Q2[k] = flatten_upper_triangular(Pk3)  # Aplanar la matriz para llenar Q2

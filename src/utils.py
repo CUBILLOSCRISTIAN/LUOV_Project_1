@@ -5,21 +5,23 @@ import numpy as np
 
 from constants import SECURITY_LEVEL
 
-def extract_Pk1(Q1, k, v):
+def extract_Pk1(Q1, k, v,m):
     """Extrae la submatriz Pk1 de Q1 (términos cuadráticos en variables de vinagre)."""
     Pk1 = np.zeros((v, v), dtype=int)
-    column = 0
+    column = 1 # Empieza después del término constante
     for i in range(v):
         for j in range(i, v):
             Pk1[i, j] = Q1[k, column]
             column += 1
+        column += m     # Saltar los términos x_i x_{v+1} hasta x_i x_{v+m}
     return Pk1
 
 def extract_Pk2(Q1, k, v, m):
     """Extrae la submatriz Pk2 de Q1 (términos bilineales entre vinagre y aceite)."""
     Pk2 = np.zeros((v, m), dtype=int)
-    column = v * (v + 1) // 2  # Empieza después de los términos de vinagre
+    column = 1 # Empieza después de los términos de vinagre
     for i in range(v):
+        column += v-i+1  # Saltar los términos x_i x_{i+1} hasta x_i x_v
         for j in range(m):
             Pk2[i, j] = Q1[k, column]
             column += 1
