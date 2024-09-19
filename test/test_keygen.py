@@ -1,16 +1,51 @@
-# test_keygen.py
-
 import unittest
-from src.keygen import keygen
+import os
+import numpy as np
+from src import compute_Pk3
 
-class TestKeyGen(unittest.TestCase):
-    
-    def test_keygen_output(self):
-        """Prueba que el algoritmo KeyGen retorne claves válidas."""
-        public_key, private_key = keygen()
-        self.assertEqual(len(private_key), 32, "La clave privada debe tener 32 bytes.")
-        self.assertIsInstance(public_key, tuple, "La clave pública debe ser una tupla.")
-        self.assertEqual(len(public_key[0]), 32, "La semilla pública debe tener 32 bytes.")
-    
-if __name__ == '__main__':
+from src.utils import (
+    generate_private_seed,
+    InitializeAndAbsorb,
+    SqueezePublicSeed,
+    SqueezeT,
+    SqueezePublicMap,
+    find_Q2,
+    sign_message,
+    verify_signature,
+)
+from src.constants import SEED_SIZE, SECURITY_LEVEL
+
+
+class TestLUOV(unittest.TestCase):
+    def setUp(self):
+        self.private_seed = generate_private_seed()
+        self.message = "Este es el mensaje que estamos firmando"
+
+    def test_generate_private_seed(self):
+        seed = generate_private_seed()
+        self.assertEqual(len(seed), SEED_SIZE)
+
+    def test_keygen(self):
+        private_sponge = InitializeAndAbsorb(self.private_seed)
+        public_seed = SqueezePublicSeed(private_sponge)
+        T = SqueezeT(private_sponge)
+        C, L, Q1 = SqueezePublicMap(public_seed)
+        Q2 = find_Q2(Q1, T)
+        self.assertIsNotNone(public_seed)
+        self.assertIsNotNone(T)
+        self.assertIsNotNone(C)
+        self.assertIsNotNone(L)
+        self.assertIsNotNone(Q1)
+        self.assertIsNotNone(Q2)
+
+    def test_sign_and_verify(self):
+        public_key, private_key, _ = keygen(self.private_seed)
+        signature, salt = sign_message(private_key, self.message)
+        is_valid = verify_signature(
+            public_key, self.message, signature, salt, SECURITY_LEVEL
+        )
+        self.assertTrue(is_valid)
+
+
+if __name__ == "__main__":
     unittest.main()
