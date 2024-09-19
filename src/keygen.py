@@ -10,10 +10,8 @@ from utils import (
     SqueezePublicSeed,
     SqueezeT,
     SqueezePublicMap,
-    verify_signature,
-    sign_message,
 )
-from constants import r, m, v, n, SEED_SIZE, SECURITY_LEVEL
+from constants import m, v, SEED_SIZE
 
 
 def generate_private_seed():
@@ -79,19 +77,19 @@ def main():
     print(f"Tamaño de la clave pública: {public_key_size_kb:.2f} KB")
 
     # Mensaje a firmar
-    message = "Este es el mensaje que estamos firmando"
+    # message = "Este es el mensaje que estamos firmando"
 
-    # Firmar el mensaje
-    signature, salt = sign_message(private_key, message)
-    print(f"Firma: {signature}")
-    print(f"Salt: {salt}")
+    # # Firmar el mensaje
+    # signature, salt = sign_message(private_key, message)
+    # print(f"Firma: {signature}")
+    # print(f"Salt: {salt}")
 
-    # Verificar la firma
-    is_valid = verify_signature(public_key, message, signature)
-    if is_valid:
-        print("Firma válida")
-    else:
-        print("Firma inválida")
+    # # Verificar la firma
+    # is_valid = verify_signature(public_key, message, signature)
+    # if is_valid:
+    #     print("Firma válida")
+    # else:
+    #     print("Firma inválida")
 
 
 if __name__ == "__main__":

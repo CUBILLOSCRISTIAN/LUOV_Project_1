@@ -1,7 +1,6 @@
 # utils_for_verify.py
 
 import hashlib
-import os
 import numpy as np
 
 from constants import SECURITY_LEVEL, m, v, r
@@ -9,7 +8,7 @@ from utils import (
     FindPk1,
     FindPk2,
     InitializeAndAbsorb,
-    SqueezePublicMap,
+    SqueezePublicMap as G,
 )
 
 
@@ -64,14 +63,37 @@ def hash_message(message, salt, security_level):
     return hashlib.sha256(salt + message.encode()).digest()[: security_level // 8]
 
 
-def H(data):
-    # Implementar la función hash H
-    pass
+def Hash(data, length):
+    # Calcular el hash SHA-256 del dato
+    hash_digest = hashlib.sha256(data).digest()
+    
+    # Convertir el hash digest a un vector sobre F_{2^r} de longitud m
+    bit_string = ''.join(format(byte, '08b') for byte in hash_digest)
+    bit_vector = [int(bit_string[i:i+r], 2) for i in range(0, length * r, r)]
+    
+    return np.array(bit_vector[:length])
 
+def generate_public_seed_and_T(private_seed):
+    # Calcular el número de bytes necesarios para T
+    dm8e = (m + 7) // 8  # Redondear hacia arriba la división de m entre 8
+    length = 32 + v * dm8e
 
-def G(public_seed):
-    # Implementar la función G que genera C, L y Q1 a partir de la semilla pública
-    pass
+    # Evaluar H(private_seed, length)
+    hash_output = hashlib.sha256(private_seed).digest()[:length]
+
+    # Los primeros 32 bytes forman la semilla pública
+    public_seed = hash_output[:32]
+
+    # Los bytes restantes forman la matriz T
+    T_bytes = hash_output[32:]
+    T = np.zeros((v, m), dtype=int)
+
+    for i in range(v):
+        row_bytes = T_bytes[i * dm8e:(i + 1) * dm8e]
+        row_bits = ''.join(format(byte, '08b') for byte in row_bytes)
+        T[i, :] = [int(bit) for bit in row_bits[:m]]
+
+    return public_seed, T
 
 
 def RandomBytes(length):
@@ -80,7 +102,7 @@ def RandomBytes(length):
 
 def Sign(private_seed, message):
     # Paso 1: Generar la semilla pública y la matriz T
-    public_seed, T = H(private_seed)
+    public_seed, T = generate_public_seed_and_T(private_seed)
 
     # Paso 2: Generar C, L y Q1 a partir de la semilla pública
     C, L, Q1 = G(public_seed)
@@ -89,15 +111,15 @@ def Sign(private_seed, message):
     salt = RandomBytes(16)
 
     # Paso 4: Calcular el hash h del mensaje concatenado con 0x00 y el salt
-    h = hash_message(message + b"\x00" + salt, salt, SECURITY_LEVEL)
+    h = Hash(message + b"\x00" + salt, salt)
 
     # Paso 5: Bucle hasta encontrar una solución
     while True:
         # Paso 6: Generar un vector v aleatorio
-        v = RandomBytes(r * v // 8)
+        V = RandomBytes(r * v // 8)
 
         # Paso 7: Construir la matriz aumentada A
-        A = BuildAugmentedMatrix(C, L, Q1, T, h, v)
+        A = BuildAugmentedMatrix(C, L, Q1, T, h, V)
 
         # Paso 9: Aplicar eliminación gaussiana a A
         solution = GaussianElimination(A)
@@ -119,7 +141,7 @@ def verify_signature(public_key, message, signature):
     public_seed, Q2 = public_key
     private_sponge = InitializeAndAbsorb(public_seed)
 
-    C, L, Q1 = SqueezePublicMap(public_seed)
+    C, L, Q1 = G(public_seed)
 
     salt = signature[-16:]
     h = hash_message(message, salt, SECURITY_LEVEL)
@@ -140,13 +162,25 @@ def verify_signature(public_key, message, signature):
         return False
 
 
-def evaluate_public_map(Q2, z, public_seed):
-    """Evalúa el polinomio cuadrático P en el punto z utilizando la clave pública."""
-    # Inicializar con el término constante de C
-    P_z = np.zeros(len(Q2[0]), dtype=int)
+def EvaluatePublicMap(public_seed, Q2, s):
+    # Paso 1: Generar C, L y Q1 a partir de la semilla pública
+    C, L, Q1 = G(public_seed)
 
-    # Evaluar la parte lineal y cuadrática (matrices Q2 y L)
-    for i in range(len(Q2)):
-        P_z[i] = np.dot(z, Q2[i])  # Evaluar el polinomio cuadrático en z
+    # Paso 2: Concatenar Q1 y Q2 para formar Q
+    Q = np.hstack((Q1, Q2))
 
-    return P_z
+    # Paso 3: Inicializar e con C y agregar la parte lineal Ls
+    e = C + np.dot(L, s)
+
+    # Paso 4: Inicializar la columna
+    column = 0
+
+    # Paso 5: Iterar sobre los índices i y j para evaluar las partes cuadráticas de P en s
+    for i in range(len(s)):
+        for j in range(i, len(s)):
+            for k in range(len(C)):
+                e[k] += Q[k, column] * s[i] * s[j]
+            column += 1
+
+    # Paso 6: Devolver e
+    return e
