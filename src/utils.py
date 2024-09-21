@@ -2,6 +2,7 @@
 
 import hashlib
 import os
+import sys
 import numpy as np
 
 from constants import SECURITY_LEVEL, m, v, n, SEED_SIZE
@@ -16,33 +17,33 @@ def InitializeAndAbsorb(private_seed):
 def SqueezePublicSeed(private_sponge):
     """Extrae la semilla pública del estado del SHAKE128."""
     public_seed = private_sponge[:32]
+    print(len(public_seed))
     return public_seed
 
 
 def FindPk1(Q1, k, v):
     """Extrae la submatriz Pk1 de Q1, que representa los términos cuadráticos en variables de vinagre."""
     Pk1 = np.zeros((v, v), dtype=int)
-    column = 0  # El primer término cuadrático empieza en la columna 0 de Q1
-
+    column = 1  # El primer término cuadrático empieza en la columna 0 de Q1
     # Recorremos la mitad superior de la matriz cuadrada de vinagre
-    for i in range(v):
+    for i in range(1,v):
         for j in range(i, v):
             Pk1[i, j] = Q1[k, column]
-            Pk1[j, i] = Pk1[i, j]  # Simetría de los términos cuadráticos
+            # Pk1[j, i] = Pk1[i, j]  # Simetría de los términos cuadráticos
             column += 1
+        column += m
     return Pk1
 
 
 def FindPk2(Q1, k, v, m):
     """Extrae la submatriz Pk2 de Q1, que representa los términos bilineales entre vinagre y aceite."""
     Pk2 = np.zeros((v, m), dtype=int)
-    column = (
-        v * (v + 1)
-    ) // 2  # Empieza después de los términos cuadráticos en vinagre
+    column = 1  # Empieza después de los términos cuadráticos en vinagre
 
     # Recorremos los términos bilineales
-    for i in range(v):
-        for j in range(m):
+    for i in range(1,v):
+        column += v-i+1
+        for j in range(1,m):
             Pk2[i, j] = Q1[k, column]
             column += 1
     return Pk2
