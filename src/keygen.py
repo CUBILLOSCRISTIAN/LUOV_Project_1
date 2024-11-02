@@ -5,12 +5,12 @@ import sys
 from utils import (
     FindPk1,
     FindPk2,
-    flatten_upper_triangular,
     InitializeAndAbsorb,
     SqueezePublicSeed,
     SqueezeT,
     SqueezePublicMap,
 )
+from sign import sign_message
 from constants import m, v, SEED_SIZE
 
 
@@ -29,12 +29,12 @@ def find_Q2(Q1, T):
         Pk2 = FindPk2(Q1, k, v, m)
         Pk3 = compute_Pk3(Pk1, Pk2, T)
         column = 1
-        for i in range(1,m):
-            Q2[k,column]= Pk3[i,i]
-            column+=1
-            for j in range (i+1,m):
-                Q2[k,column]= Pk3[i,j]+Pk3[j,i]
-                column +=1
+        for i in range(1, m):
+            Q2[k, column] = Pk3[i, i]
+            column += 1
+            for j in range(i + 1, m):
+                Q2[k, column] = Pk3[i, j] + Pk3[j, i]
+                column += 1
 
     # # Asegurarse de que Q2 sea binaria
     # Q2 = np.mod(Q2, 2)
@@ -50,7 +50,7 @@ def compute_Pk3(Pk1, Pk2, T):
     # Calcula una combinación de formas cuadráticas:
     # La primera parte (-T.T @ Pk1 @ T) evalúa una forma cuadrática negativa,
     # mientras que la segunda parte (T.T @ Pk2) suma un término lineal.
-    # En resumen, la expresión devuelve un escalar o matriz que depende de 
+    # En resumen, la expresión devuelve un escalar o matriz que depende de
     # las interacciones entre las matrices T, Pk1, y Pk2.
     return -T.T @ Pk1 @ T + T.T @ Pk2
 
@@ -88,12 +88,12 @@ def main():
     print(f"Tamaño de la clave pública: {public_key_size_kb:.2f} KB")
 
     # Mensaje a firmar
-    # message = "Este es el mensaje que estamos firmando"
+    message = "Este es el mensaje que estamos firmando"
 
-    # # Firmar el mensaje
-    # signature, salt = sign_message(private_key, message)
-    # print(f"Firma: {signature}")
-    # print(f"Salt: {salt}")
+    # Firmar el mensaje
+    signature, salt = sign_message(private_key, message)
+    print(f"Firma: {signature}")
+    print(f"Salt: {salt}")
 
     # # Verificar la firma
     # is_valid = verify_signature(public_key, message, signature)
