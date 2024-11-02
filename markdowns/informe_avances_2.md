@@ -5,9 +5,6 @@
 **Departamento:** Ingeniería de Sistemas y Computación  
 **Universidad:** Universidad del Norte  
 **Repositorio:**  [GitHub](https://github.com/CUBILLOSCRISTIAN/LUOV_Project_1)	
-**Entregado por:**	
-- Cristian Cubillos.
- - David Escorcia.
 
 ## Introducción
 
