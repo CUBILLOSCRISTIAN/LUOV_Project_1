@@ -95,12 +95,12 @@ def main():
     print(f"Firma: {signature}")
     print(f"Salt: {salt}")
 
-    # # Verificar la firma
-    # is_valid = verify_signature(public_key, message, signature)
-    # if is_valid:
-    #     print("Firma válida")
-    # else:
-    #     print("Firma inválida")
+     # Verificar la firma
+     is_valid = verify_signature(public_key, message, signature)
+     if is_valid:
+         print("Firma válida")
+     else:
+         print("Firma inválida")
 
 
 if __name__ == "__main__":
