@@ -1,4 +1,4 @@
- utils_for_verify.py
+# utils_for_verify.py
 
  def verify_signature(public_key, message, signature):
      public_seed, Q2 = public_key
