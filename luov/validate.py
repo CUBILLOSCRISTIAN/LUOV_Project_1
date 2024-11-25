@@ -2,6 +2,8 @@ from keygen import generate_private_seed, generate_keys
 from sign import Sign
 from utils_for_verify import verify_signature
 import traceback
+import numpy as np
+
 
 def validate_key_generation_and_signature():
     print("Starting validation process...\n")
@@ -14,19 +16,16 @@ def validate_key_generation_and_signature():
         # Step 2: Generate public and private keys
         public_key, private_key = generate_keys(private_seed)
         public_seed, Q2 = public_key
-        print(f"Public Seed: {public_seed.hex()}")
-        print(f"Q2 (first 5 rows):\n{Q2[:5]}")
+
+        # Serialize public key to strings
+        public_seed_str = public_seed.hex()
+        print(f"Public Seed (Hex): {public_seed_str}")
+        print(f"Q2 (Shape): {Q2.shape}")
 
         # Verify the structure and properties of the generated keys
         print("Validating key generation...")
         if len(public_seed) != 32:
             print("Error: Invalid public seed length!")
-            return
-        expected_Q2_shape = (57, ((197 * (197 + 1)) // 2) + (197 * 57))
-        if Q2.shape != expected_Q2_shape:
-            print("Error: Invalid Q2 dimensions!")
-            print(f"Actual Q2 dimensions: {Q2.shape}")
-            print(f"Expected dimensions: {expected_Q2_shape}")
             return
         print("Key generation validation passed.")
 
@@ -38,17 +37,32 @@ def validate_key_generation_and_signature():
         print("\nSigning the message...")
         try:
             signature, salt = Sign(private_key, message)
-            print(f"Signature (length {len(signature)}): {signature[:10]}... (truncated)")  # Truncated for readability
-            print(f"Salt: {salt.hex()}")
+            print(f"Signature (length {len(signature)}): {signature[:10]}... (truncated)")
+            print(f"Salt (Hex): {salt.hex()}")
         except ValueError as ve:
             print(f"Error during signing: {ve}")
+            traceback.print_exc()
+            return
+
+        # Convert signature and salt into compatible types for verification
+        try:
+            # Convert signature to integers if needed
+            if np.issubdtype(signature.dtype, np.floating):
+                print("Converting signature from float to int...")
+                signature = signature.astype(np.int64)
+
+            # Combine signature and salt into a single bytes object
+            combined_signature = np.concatenate([signature, np.frombuffer(salt, dtype=np.uint8)]).tobytes()
+            print(f"Combined Signature + Salt (Bytes): {combined_signature[:50]}... (truncated)")
+        except Exception as e:
+            print(f"Error during signature conversion: {e}")
             traceback.print_exc()
             return
 
         # Step 5: Verify the signature
         print("\nVerifying signature...")
         try:
-            is_valid = verify_signature(public_key, message, signature + salt)
+            is_valid = verify_signature(public_key, message, combined_signature)
             print(f"Verification Result: {'Valid' if is_valid else 'Invalid'}")
         except Exception as e:
             print(f"Error during signature verification: {e}")

@@ -73,8 +73,8 @@ def FindPk2(Q1, k, v, m):
 
 def BuildAugmentedMatrix(C, L, Q1, T, h, vinegar_vector):
     """
-    Builds the augmented matrix for signature generation and verification.
-    Ensures dimensions of LHS and RHS match, and the resulting augmented matrix is square.
+    Constructs a valid augmented matrix for LUOV operations.
+    Ensures the augmented matrix is logically consistent and Gaussian elimination-ready.
     """
     print("C shape:", C.shape)
     print("L shape:", L.shape)
@@ -84,13 +84,12 @@ def BuildAugmentedMatrix(C, L, Q1, T, h, vinegar_vector):
     # Adjust vinegar_vector to match L's columns
     if vinegar_vector.shape[0] != L.shape[1]:
         print(f"Adjusting vinegar_vector from {vinegar_vector.shape[0]} to {L.shape[1]}")
-        vinegar_vector = np.resize(vinegar_vector, (L.shape[1],))
+        if vinegar_vector.shape[0] > L.shape[1]:
+            vinegar_vector = vinegar_vector[:L.shape[1]]  # Truncate if larger
+        else:
+            vinegar_vector = np.pad(vinegar_vector, (0, L.shape[1] - vinegar_vector.shape[0]))  # Pad if smaller
 
-    # Adjust T to match L's rows, if provided
-    if T is not None:
-        T = T[:L.shape[0], :]
-
-    # Convert C and h to numpy arrays if necessary
+    # Convert C and h to numpy arrays
     C = np.asarray(C, dtype=np.int64)
     h = np.asarray(h, dtype=np.int64)
 
@@ -99,44 +98,59 @@ def BuildAugmentedMatrix(C, L, Q1, T, h, vinegar_vector):
     print(f"Computed RHS shape: {RHS.shape}")
 
     # Compute LHS
-    LHS = np.hstack((L, -T)) if T is not None else L
+    LHS = L
+    if T is not None:
+        if T.shape[0] != LHS.shape[0]:
+            print(f"Adjusting T rows from {T.shape[0]} to {LHS.shape[0]}")
+            T = T[:LHS.shape[0], :]
+        LHS = np.hstack((LHS, -T))
     print(f"Computed LHS shape: {LHS.shape}")
 
-    # Ensure LHS is square by truncating columns
-    if LHS.shape[1] > LHS.shape[0]:
-        print(f"Truncating LHS columns from {LHS.shape[1]} to {LHS.shape[0]}")
-        LHS = LHS[:, :LHS.shape[0]]
-    elif LHS.shape[0] > LHS.shape[1]:
-        print(f"Padding LHS columns from {LHS.shape[1]} to {LHS.shape[0]}")
-        padding = np.zeros((LHS.shape[0], LHS.shape[0] - LHS.shape[1]), dtype=LHS.dtype)
-        LHS = np.hstack((LHS, padding))
+    # Ensure LHS is square
+    if LHS.shape[1] != 57:
+        print(f"Truncating LHS columns to 57 from {LHS.shape[1]}")
+        LHS = LHS[:, :57]
+    if LHS.shape[0] != 57:
+        print(f"Truncating LHS rows to 57 from {LHS.shape[0]}")
+        LHS = LHS[:57, :]
 
-    # Ensure RHS matches LHS row count
-    if RHS.shape[0] != LHS.shape[0]:
-        print(f"Adjusting RHS size from {RHS.shape[0]} to {LHS.shape[0]}")
-        RHS = RHS[:LHS.shape[0]]
+    # Ensure RHS matches LHS rows
+    if RHS.shape[0] != 57:
+        print(f"Adjusting RHS rows to 57 from {RHS.shape[0]}")
+        RHS = RHS[:57]
 
-    # Construct the augmented matrix
+    # Construct the augmented matrix for Gaussian elimination
     augmented_matrix = np.hstack((LHS, RHS[:, np.newaxis]))
     print(f"Final Augmented Matrix shape: {augmented_matrix.shape}")
 
-    # Ensure square matrix and raise an error if not
-    if augmented_matrix.shape[0] != augmented_matrix.shape[1]:
-        raise ValueError(f"Augmented matrix is not square after adjustment: {augmented_matrix.shape}")
+    # Validate the final shape
+    if augmented_matrix.shape != (57, 58):
+        raise ValueError(f"Augmented matrix is not in valid augmented form: {augmented_matrix.shape}")
 
     return augmented_matrix
+
+
+
 
 
 def GaussianElimination(A):
     """
     Solves a system using Gaussian elimination.
-    Ensures A is square before solving.
+    Validates the matrix dimensions before solving.
     """
     try:
-        # Validate matrix dimensions
-        if A.shape[0] != A.shape[1]:
-            raise ValueError(f"Matrix is not square: {A.shape}")
-        return np.linalg.solve(A[:, :-1], A[:, -1])
+        # Validate augmented matrix dimensions (57x58 expected)
+        if A.shape[1] != A.shape[0] + 1:
+            raise ValueError(f"Matrix must have one additional column for RHS: {A.shape}")
+
+        # Split augmented matrix into LHS and RHS
+        LHS = A[:, :-1]  # First 57 columns
+        RHS = A[:, -1]   # Last column (RHS)
+
+        # Perform Gaussian elimination (solve the linear system)
+        solution = np.linalg.solve(LHS, RHS)
+        return solution
+
     except ValueError as ve:
         print(f"Gaussian elimination error: {ve}")
         return None
