@@ -1,9 +1,9 @@
+# validate.py
 from keygen import generate_private_seed, generate_keys
 from sign import Sign
 from utils_for_verify import verify_signature
 import traceback
 import numpy as np
-
 
 def validate_key_generation_and_signature():
     print("Starting validation process...\n")
@@ -44,16 +44,19 @@ def validate_key_generation_and_signature():
             traceback.print_exc()
             return
 
-        # Convert signature and salt into compatible types for verification
+        # Combine signature and salt into compatible format for verification
         try:
             # Convert signature to integers if needed
-            if np.issubdtype(signature.dtype, np.floating):
-                print("Converting signature from float to int...")
-                signature = signature.astype(np.int64)
+            if signature.dtype.kind == 'f':
+                print("Converting signature from float to uint8...")
+                signature = signature.astype(np.uint8)
 
-            # Combine signature and salt into a single bytes object
-            combined_signature = np.concatenate([signature, np.frombuffer(salt, dtype=np.uint8)]).tobytes()
-            print(f"Combined Signature + Salt (Bytes): {combined_signature[:50]}... (truncated)")
+            # Convert salt to NumPy array
+            salt_array = np.frombuffer(salt, dtype=np.uint8)
+
+            # Concatenate signature and salt as a NumPy array
+            combined_signature = np.concatenate([signature, salt_array])
+            print(f"Combined Signature + Salt (Array): {combined_signature[:10]}... (truncated)")
         except Exception as e:
             print(f"Error during signature conversion: {e}")
             traceback.print_exc()
@@ -79,6 +82,6 @@ def validate_key_generation_and_signature():
         print(f"An unexpected error occurred during validation: {e}")
         traceback.print_exc()
 
-
 if __name__ == "__main__":
     validate_key_generation_and_signature()
+

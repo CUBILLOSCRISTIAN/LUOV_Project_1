@@ -1,3 +1,4 @@
+# utils.py
 import numpy as np
 from constants import m, v, n
 
@@ -28,48 +29,6 @@ def SqueezePublicMap(public_seed):
     L = np.random.randint(0, 256, size=(m, n), dtype=np.uint8)
     Q1 = np.random.randint(0, 256, size=(m, (v * (v + 1)) // 2 + v * m), dtype=np.uint8)
     return C, L, Q1
-
-def FindPk1(Q1, k, v):
-    """
-    Finds the Pk1 matrix for the k-th row.
-
-    Args:
-        Q1 (numpy.ndarray): The Q1 matrix.
-        k (int): The row index.
-        v (int): Number of vinegar variables.
-
-    Returns:
-        numpy.ndarray: The Pk1 matrix for the k-th row.
-    """
-    Pk1 = np.zeros((v, v), dtype=int)
-    column = 0
-    for i in range(v):
-        for j in range(i, v):
-            Pk1[i, j] = Q1[k, column]
-            column += 1
-    return Pk1
-
-def FindPk2(Q1, k, v, m):
-    """
-    Finds the Pk2 matrix for the k-th row.
-
-    Args:
-        Q1 (numpy.ndarray): The Q1 matrix.
-        k (int): The row index.
-        v (int): Number of vinegar variables.
-        m (int): Number of oil variables.
-
-    Returns:
-        numpy.ndarray: The Pk2 matrix for the k-th row.
-    """
-    Pk2 = np.zeros((v, m), dtype=int)
-    column = (v * (v + 1)) // 2
-    for i in range(v):
-        for j in range(m):
-            Pk2[i, j] = Q1[k, column]
-            column += 1
-    return Pk2
-
 
 def BuildAugmentedMatrix(C, L, Q1, T, h, vinegar_vector):
     """
@@ -106,32 +65,16 @@ def BuildAugmentedMatrix(C, L, Q1, T, h, vinegar_vector):
         LHS = np.hstack((LHS, -T))
     print(f"Computed LHS shape: {LHS.shape}")
 
-    # Ensure LHS is square
-    if LHS.shape[1] != 57:
-        print(f"Truncating LHS columns to 57 from {LHS.shape[1]}")
-        LHS = LHS[:, :57]
-    if LHS.shape[0] != 57:
-        print(f"Truncating LHS rows to 57 from {LHS.shape[0]}")
-        LHS = LHS[:57, :]
-
-    # Ensure RHS matches LHS rows
-    if RHS.shape[0] != 57:
-        print(f"Adjusting RHS rows to 57 from {RHS.shape[0]}")
-        RHS = RHS[:57]
+    # Dynamically adjust LHS and RHS based on current shape
+    min_dim = min(LHS.shape[0], LHS.shape[1])
+    LHS = LHS[:min_dim, :min_dim]
+    RHS = RHS[:min_dim]
 
     # Construct the augmented matrix for Gaussian elimination
     augmented_matrix = np.hstack((LHS, RHS[:, np.newaxis]))
     print(f"Final Augmented Matrix shape: {augmented_matrix.shape}")
 
-    # Validate the final shape
-    if augmented_matrix.shape != (57, 58):
-        raise ValueError(f"Augmented matrix is not in valid augmented form: {augmented_matrix.shape}")
-
     return augmented_matrix
-
-
-
-
 
 def GaussianElimination(A):
     """
@@ -139,12 +82,12 @@ def GaussianElimination(A):
     Validates the matrix dimensions before solving.
     """
     try:
-        # Validate augmented matrix dimensions (57x58 expected)
+        # Validate augmented matrix dimensions (n x (n+1) expected)
         if A.shape[1] != A.shape[0] + 1:
             raise ValueError(f"Matrix must have one additional column for RHS: {A.shape}")
 
         # Split augmented matrix into LHS and RHS
-        LHS = A[:, :-1]  # First 57 columns
+        LHS = A[:, :-1]  # First n columns
         RHS = A[:, -1]   # Last column (RHS)
 
         # Perform Gaussian elimination (solve the linear system)
