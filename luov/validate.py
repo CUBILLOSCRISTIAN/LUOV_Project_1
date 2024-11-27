@@ -30,7 +30,7 @@ def validate_key_generation_and_signature():
         print("Key generation validation passed.")
 
         # Step 3: Prepare a message
-        message = "Test message for validation.".encode("utf-8")
+        message = "This is the test message for LUOV validation.".encode("utf-8")
         print(f"Message: {message.decode('utf-8')}")
 
         # Step 4: Sign the message
@@ -84,4 +84,3 @@ def validate_key_generation_and_signature():
 
 if __name__ == "__main__":
     validate_key_generation_and_signature()
-
