@@ -4,7 +4,6 @@ from utils import SqueezePublicMap, BuildAugmentedMatrix, GaussianElimination
 from constants import m, v
 
 def verify_signature(public_key, message, signature):
-    """Verifies a signature."""
     public_seed, Q2 = public_key
     C, L, Q1 = SqueezePublicMap(public_seed)
 
