@@ -3,27 +3,9 @@ import numpy as np
 from constants import m, v, n
 
 def SqueezePublicSeed(private_seed):
-    """
-    Extracts the public seed from the private seed.
-
-    Args:
-        private_seed (bytes): The private seed.
-
-    Returns:
-        bytes: The public seed derived from the private seed.
-    """
     return private_seed[:m]
 
 def SqueezePublicMap(public_seed):
-    """
-    Extracts public parameters (C, L, Q1) from the public seed.
-
-    Args:
-        public_seed (bytes): The public seed.
-
-    Returns:
-        tuple: Randomly generated public parameters (C, L, Q1).
-    """
     np.random.seed(int.from_bytes(public_seed, 'big') % (2**32))  # Seed numpy RNG for reproducibility
     C = np.random.randint(0, 256, size=m, dtype=np.uint8)
     L = np.random.randint(0, 256, size=(m, n), dtype=np.uint8)
